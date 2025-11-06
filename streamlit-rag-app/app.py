@@ -63,3 +63,9 @@ if user_question:
         st.write("Answer:", answer)
     else:
         st.write("Sorry, I couldn't find an answer to your question.")
+
+
+import streamlit as st
+
+st.title("🎉 Streamlit Test App")
+st.write("Streamlit is successfully detecting your app.py file.")
