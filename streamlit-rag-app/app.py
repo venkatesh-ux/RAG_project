@@ -18,18 +18,20 @@ st.title("PDF Question Answering App")
 # Input for PDF path
 pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Books/Hands on machine learing book.pdf")
 
-if pdf_path:
+if st.button("Process PDF"):
     try:
         full_text = read_pdf(pdf_path)
         st.success("PDF loaded successfully!")
 
-        # Split text into chunks (pass strings to VectorStore)
+        # Split text into chunks
         splitter = RecursiveCharacterTextSplitter(chunk_size=2500, chunk_overlap=200)
         chunks = splitter.split_text(full_text)
 
         # Create/load vector store from chunks
         vector_store = VectorStore.from_texts(chunks, vector_store_path="faiss_vector_store")
         st.success("Embeddings and vector store created successfully!")
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
         # User question...
         question = st.text_input("Ask a question about the PDF:")
