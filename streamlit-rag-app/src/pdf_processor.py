@@ -1,5 +1,6 @@
 from pathlib import Path
-from PyPDF2 import PdfReader, PdfReadError
+from PyPDF2 import PdfReader
+from PyPDF2.errors import PdfReadError
 
 def read_pdf(file_path):
     p = Path(file_path)
