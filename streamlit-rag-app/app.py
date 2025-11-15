@@ -1,97 +1,77 @@
+# app.py
 import os
 from pathlib import Path
 import streamlit as st
 from PyPDF2 import PdfReader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain_community.vectorstores import FAISS
-from langchain_core.prompts import PromptTemplate
-import sys
-sys.path.append("c:/Users/chven/OneDrive/Documents/GitHub/RAG_project")
-import config
 
-# Set OpenAI API key
-import config
-os.environ["OPENAI_API_KEY"] = config.API_KEY
+st.set_page_config(page_title="Local PDF Text Viewer", layout="wide")
 
-# Step 1: PDF Ingestion
-def read_pdf(pdf_path):
-    reader = PdfReader(str(pdf_path))
-    pages_text = [page.extract_text() or "" for page in reader.pages]
-    full_text = "\n\n".join(pages_text)
-    return full_text
+st.title("Local PDF Text Viewer (No external calls)")
 
-# Step 2: Text Splitting
-def split_text(full_text, chunk_size=2500, chunk_overlap=200):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    chunks = text_splitter.split_text(full_text)
-    return chunks
-
-# Step 3: Embedding Creation and Vector Store
-def create_vector_store(chunks, vector_store_path="faiss_vector_store"):
-    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-    vector_store = FAISS.from_texts(chunks, embeddings)
-    vector_store.save_local(vector_store_path)
-    return vector_store
-
-# Step 4: Retrieval
-def retrieve_answer(vector_store, question, k=3):
-    retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
-    retrieved_docs = retriever.invoke(question)
-    context_text = "\n\n".join(doc.page_content for doc in retrieved_docs)
-    return context_text
-
-# Step 5: Answer Generation
-def generate_answer(context, question):
-    prompt = PromptTemplate(
-        template="""
-        You are a helpful assistant.
-        Answer ONLY from the provided context.
-        If the context is insufficient, just say you don't know.
-        
-        {context}
-        Question: {question}
-        """,
-        input_variables=["context", "question"]
-    )
-    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
-    final_prompt = prompt.invoke({'context': context, 'question': question})
-    answer = llm.invoke(final_prompt)
-    return answer
-
-# Streamlit App
-st.title("PDF Question Answering App")
+st.markdown(
+    """
+Upload a PDF and this app will extract and display the text locally.
+No OpenAI / LangChain / FAISS / external APIs are used.
+Streamlit runs on localhost (by default http://localhost:8501).
+"""
+)
 
 # File uploader for PDF
 uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
+def read_pdf_bytes(pdf_bytes):
+    """
+    Read PDF from bytes and extract text from all pages.
+    Returns a single string with pages joined by newlines.
+    """
+    reader = PdfReader(pdf_bytes)
+    pages_text = []
+    for i, page in enumerate(reader.pages):
+        try:
+            text = page.extract_text() or ""
+        except Exception:
+            text = ""
+        # Optionally strip leading/trailing whitespace per page
+        pages_text.append(text.strip())
+    full_text = "\n\n".join(pages_text)
+    return full_text
+
 if uploaded_file is not None:
-    # Save the uploaded file temporarily
-    pdf_path = Path("uploaded_file.pdf")
-    with open(pdf_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
+    # Show filename and size
+    st.write(f"**File:** {uploaded_file.name} — {uploaded_file.size} bytes")
 
-    # Step 1: Read PDF
-    full_text = read_pdf(pdf_path)
-    st.write("### PDF Content:")
-    st.write(full_text[:1000])  # Display the first 1000 characters of the PDF content
+    # Read & extract text
+    full_text = read_pdf_bytes(uploaded_file)
 
-    # Step 2: Split Text
-    chunks = split_text(full_text)
+    if not full_text.strip():
+        st.warning("No extractable text found in this PDF (it might be scanned images).")
+        st.info("If it's a scanned PDF, consider OCR (tesseract, pytesseract) before text extraction.")
+    else:
+        # Option: show only a preview or full text
+        show_full = st.checkbox("Show full extracted text", value=False)
+        if show_full:
+            st.subheader("Full extracted text")
+            st.text_area("Text", value=full_text, height=600)
+        else:
+            # Show first N characters as a preview
+            preview_chars = st.number_input("Preview characters", min_value=100, max_value=20000, value=1000, step=100)
+            st.subheader("Preview of extracted text")
+            st.text_area("Preview", value=full_text[:preview_chars], height=300)
 
-    # Step 3: Create Vector Store
-    vector_store = create_vector_store(chunks)
+        # Download button for extracted text
+        st.download_button(
+            label="Download extracted text (.txt)",
+            data=full_text,
+            file_name=Path(uploaded_file.name).stem + ".txt",
+            mime="text/plain",
+        )
 
-    # Question input
-    question = st.text_input("Ask a question about the PDF:")
+    # Optionally store the uploaded file locally (temporary)
+    if st.button("Save uploaded PDF to local disk"):
+        save_path = Path.cwd() / uploaded_file.name
+        with open(save_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.success(f"Saved to {save_path}")
 
-    if question:
-        # Step 4: Retrieve Answer
-        context = retrieve_answer(vector_store, question)
-
-        # Step 5: Generate Answer
-        answer = generate_answer(context, question)
-
-        # Display the answer
-        st.write("### Answer:")
-        st.write(answer)
+else:
+    st.info("Upload a PDF to extract and view its text locally.")
