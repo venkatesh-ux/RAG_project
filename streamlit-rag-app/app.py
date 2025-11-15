@@ -18,6 +18,9 @@ st.title("PDF Question Answering App")
 # Input for PDF path
 pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Books/Hands on machine learing book.pdf")
 
+# Question input field (always visible)
+question = st.text_input("Ask a question about the PDF:")
+
 if st.button("Process PDF"):
     try:
         full_text = read_pdf(pdf_path)
@@ -37,29 +40,16 @@ if st.button("Process PDF"):
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
-        # User question...
-        question = st.text_input("Ask a question about the PDF:")
-        if question:
-            retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-            if retriever is None:
-                st.error("Retriever not available. Vector store failed to initialize.")
-            else:
-                try:
-                    # Use the correct method for retrieving documents
-                    docs = retriever.get_relevant_documents(question)
-                    context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
-                    st.write("Answer Context:")
-                    st.write(context)
-                except AttributeError as e:
-                    st.error(f"Error retrieving documents: {e}")
-    except FileNotFoundError as e:
-        st.error(f"File not found: {e}")
-    except ValueError as e:
-        st.error(f"Error processing the PDF: {e}")
-    except Exception as e:
-        st.error(f"An unexpected error occurred: {e}")
-
-# # Create embeddings and vector store
-# embeddings = create_embeddings(full_text)
-# vector_store = VectorStore(embeddings, vector_store_path="faiss_vector_store")
-# st.success("Embeddings and vector store created successfully!")
+if question:
+    try:
+        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+        if retriever is None:
+            st.error("Retriever not available. Vector store failed to initialize.")
+        else:
+            # Use the correct method for retrieving documents
+            docs = retriever.get_relevant_documents(question)
+            context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
+            st.write("Answer Context:")
+            st.write(context)
+    except AttributeError as e:
+        st.error(f"Error retrieving documents: {e}")
