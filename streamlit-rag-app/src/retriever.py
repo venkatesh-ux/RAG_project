@@ -1,7 +1,7 @@
 import os
 from src.config import Config
 
-# ensure API key is available before importing langchain LLMs
+# Ensure API key is available before importing langchain LLMs
 OPENAI_KEY = os.environ.get("OPENAI_API_KEY") or Config.OPENAI_API_KEY
 if not OPENAI_KEY:
     raise EnvironmentError("OPENAI_API_KEY not set. Add it as an env var or in .streamlit/secrets.toml")
@@ -11,7 +11,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.prompts import PromptTemplate
 
-# import a chat LLM with safe fallbacks
+# Import a chat LLM with safe fallbacks
 try:
     from langchain.chat_models import ChatOpenAI
 except Exception:
@@ -25,7 +25,7 @@ except Exception:
 class Retriever:
     def __init__(self, vector_store_path):
         embeddings = OpenAIEmbeddings(model=Config.EMBEDDING_MODEL)
-        # load the saved FAISS vector store
+        # Load the saved FAISS vector store
         self.vector_store = FAISS.load_local(vector_store_path, embeddings)
 
         if ChatOpenAI is None:
@@ -44,7 +44,7 @@ class Retriever:
         k = k or Config.RETRIEVER_K
         retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
 
-    # Check if the public method exists, otherwise use the private method
+        # Check if the public method exists, otherwise use the private method
         if hasattr(retriever, "get_relevant_documents"):
             docs = retriever.get_relevant_documents(query)
         elif hasattr(retriever, "_get_relevant_documents"):
@@ -56,7 +56,7 @@ class Retriever:
     def retrieve_answer(self, query, k=None):
         docs = self.retrieve_documents(query, k)
         context = "\n\n".join(getattr(d, "page_content", str(d)) for d in docs) if docs else ""
-        # lazy import of LLMChain to handle langchain version differences
+        # Lazy import of LLMChain to handle langchain version differences
         try:
             import importlib
             try:
