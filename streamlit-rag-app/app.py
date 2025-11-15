@@ -44,7 +44,7 @@ if not OPENAI_KEY:
     st.stop()
 os.environ["OPENAI_API_KEY"] = OPENAI_KEY
 
-pdf_path = st.text_input("PDF path", "data/books/sample.pdf")
+pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Books/Hands on machine learing book.pdf")
 
 if not os.path.exists(pdf_path):
     st.error(f"File not found: {pdf_path}. Please provide a valid PDF file path.")
