@@ -1,74 +1,94 @@
-from src.pdf_processor import read_pdf
-from src.vectorstore import VectorStore
 import os
+from pathlib import Path
 import streamlit as st
+from PyPDF2 import PdfReader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings, ChatOpenAI
+from langchain_community.vectorstores import FAISS
+from langchain_core.prompts import PromptTemplate
 
-# Ensure OpenAI API key is set
-OPENAI_KEY = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
-if not OPENAI_KEY:
-    st.error("OPENAI_API_KEY not set. Add it as an environment variable or in .streamlit/secrets.toml")
-    st.stop()
-os.environ["OPENAI_API_KEY"] = OPENAI_KEY
+# Set OpenAI API key
+import config
+os.environ["OPENAI_API_KEY"] = config.API_KEY
 
-# Streamlit app
+# Step 1: PDF Ingestion
+def read_pdf(pdf_path):
+    reader = PdfReader(str(pdf_path))
+    pages_text = [page.extract_text() or "" for page in reader.pages]
+    full_text = "\n\n".join(pages_text)
+    return full_text
+
+# Step 2: Text Splitting
+def split_text(full_text, chunk_size=2500, chunk_overlap=200):
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    chunks = text_splitter.split_text(full_text)
+    return chunks
+
+# Step 3: Embedding Creation and Vector Store
+def create_vector_store(chunks, vector_store_path="faiss_vector_store"):
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    vector_store = FAISS.from_texts(chunks, embeddings)
+    vector_store.save_local(vector_store_path)
+    return vector_store
+
+# Step 4: Retrieval
+def retrieve_answer(vector_store, question, k=3):
+    retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
+    retrieved_docs = retriever.invoke(question)
+    context_text = "\n\n".join(doc.page_content for doc in retrieved_docs)
+    return context_text
+
+# Step 5: Answer Generation
+def generate_answer(context, question):
+    prompt = PromptTemplate(
+        template="""
+        You are a helpful assistant.
+        Answer ONLY from the provided context.
+        If the context is insufficient, just say you don't know.
+        
+        {context}
+        Question: {question}
+        """,
+        input_variables=["context", "question"]
+    )
+    llm = ChatOpenAI(model="gpt-3.5-turbo", temperature=0)
+    final_prompt = prompt.invoke({'context': context, 'question': question})
+    answer = llm.invoke(final_prompt)
+    return answer
+
+# Streamlit App
 st.title("PDF Question Answering App")
 
-# Input for PDF path
-pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Books/Hands on machine learing book.pdf")
+# File uploader for PDF
+uploaded_file = st.file_uploader("Upload a PDF file", type=["pdf"])
 
-# Initialize vector_store in session_state
-if "vector_store" not in st.session_state:
-    st.session_state.vector_store = None
+if uploaded_file is not None:
+    # Save the uploaded file temporarily
+    pdf_path = Path("uploaded_file.pdf")
+    with open(pdf_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
 
-# Button to process the PDF
-if st.button("Process PDF"):
-    try:
-        full_text = read_pdf(pdf_path)
-        st.success("PDF loaded successfully!")
+    # Step 1: Read PDF
+    full_text = read_pdf(pdf_path)
+    st.write("### PDF Content:")
+    st.write(full_text[:1000])  # Display the first 1000 characters of the PDF content
 
-        # Split text into chunks
-        splitter = RecursiveCharacterTextSplitter(chunk_size=2500, chunk_overlap=200)
-        chunks = splitter.split_text(full_text)
+    # Step 2: Split Text
+    chunks = split_text(full_text)
 
-        # Create vector store from chunks
-        vector_store = VectorStore.from_texts(chunks, vector_store_path="faiss_vector_store")
-        st.session_state.vector_store = vector_store  # Save to session_state
-        st.success("Embeddings and vector store created successfully!")
+    # Step 3: Create Vector Store
+    vector_store = create_vector_store(chunks)
 
-        # Save the vector store explicitly
-        vector_store.save()
-        st.success("Vector store saved successfully!")
-    except Exception as e:
-        st.error(f"An error occurred: {e}")
-
-# Disable the question field until the PDF is processed
-if st.session_state.vector_store is None:
-    st.info("Please process the PDF first to enable question answering.")
-else:
-    # Question input field (enabled only after processing the PDF)
+    # Question input
     question = st.text_input("Ask a question about the PDF:")
-    if question:
-        try:
-            retriever = st.session_state.vector_store.as_retriever(search_kwargs={"k": 3})
-            if retriever is None:
-                st.error("Retriever not available. Vector store failed to initialize.")
-            else:
-                # Dynamically check for the correct method
-                if hasattr(retriever, "retrieve"):
-                    docs = retriever.retrieve(question)
-                elif hasattr(retriever, "get_relevant_documents"):
-                    docs = retriever.get_relevant_documents(question)
-                elif hasattr(retriever, "invoke"):
-                    docs = retriever.invoke(question)
-                else:
-                    raise AttributeError("Retriever object has no method to retrieve documents.")
 
-                # Display the retrieved context
-                context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
-                st.write("Answer Context:")
-                st.write(context)
-        except AttributeError as e:
-            st.error(f"Error retrieving documents: {e}")
-        except Exception as e:
-            st.error(f"An unexpected error occurred: {e}")
+    if question:
+        # Step 4: Retrieve Answer
+        context = retrieve_answer(vector_store, question)
+
+        # Step 5: Generate Answer
+        answer = generate_answer(context, question)
+
+        # Display the answer
+        st.write("### Answer:")
+        st.write(answer)

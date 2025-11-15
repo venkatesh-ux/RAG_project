@@ -72,11 +72,12 @@ class VectorStore:
         else:
             raise RuntimeError("No vectorstore available to save. Create or load a vectorstore first.")
 
-    def as_retriever(self, search_kwargs: Optional[dict] = None):
+    def as_retriever(self, search_kwargs: Optional[dict] = None, token_limit: Optional[int] = None):
         """
         Return a retriever object.
         - If this instance was initialized with an existing retriever, return it.
         - Otherwise convert the internal vectorstore to a retriever.
+        - Optionally, apply a token limit to the output.
         """
         # If a retriever was supplied/created earlier, return it directly
         if self.retriever is not None:
@@ -86,7 +87,11 @@ class VectorStore:
             return None
 
         # Default search params
-        search_kwargs = search_kwargs or {"k": 3}
+        search_kwargs = search_kwargs or {"k": 1}
+
+        # Add token limit to search_kwargs if provided
+        if token_limit is not None:
+            search_kwargs["max_tokens"] = token_limit
 
         # Most LangChain vectorstores accept as_retriever(search_kwargs=...)
         # Do not pass unsupported args like `search_type` unless your vectorstore supports it.
