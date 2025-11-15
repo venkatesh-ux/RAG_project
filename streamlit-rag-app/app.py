@@ -38,14 +38,14 @@ if pdf_path:
             if retriever is None:
                 st.error("Retriever not available. Vector store failed to initialize.")
             else:
-                docs = retriever.get_relevant_documents(question)
-                context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
-                st.write("Answer Context:")
-                st.write(context)
-    except ValueError as e:
-        st.error(str(e))
-    except FileNotFoundError as e:
-        st.error(str(e))
+                try:
+                    # Use the correct method for retrieving documents
+                    docs = retriever.get_relevant_documents(question)
+                    context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
+                    st.write("Answer Context:")
+                    st.write(context)
+                except AttributeError as e:
+                    st.error(f"Error retrieving documents: {e}")
 
 # # Create embeddings and vector store
 # embeddings = create_embeddings(full_text)

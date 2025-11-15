@@ -44,7 +44,7 @@ class Retriever:
         k = k or Config.RETRIEVER_K
         retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
         # prefer get_relevant_documents() to obtain Document objects
-        docs = retriever.get_relevant_documents(query)
+        docs = retriever._get_relevant_documents(query)
         return docs
 
     def retrieve_answer(self, query, k=None):
