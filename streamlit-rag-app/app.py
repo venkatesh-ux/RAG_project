@@ -48,6 +48,8 @@ def generate_answer(context, question):
         You are a helpful assistant.
         Answer ONLY from the provided context.
         If the context is insufficient, just say you don't know.
+
+        Write the answer in **at least 6 lines**, detailed and clear.
         
         {context}
         Question: {question}
