@@ -1,3 +1,4 @@
+from src.embeddings import create_embeddings
 import os
 
 # Try to import streamlit; if it's not available (e.g., in a linter or non-Streamlit env),
@@ -42,6 +43,17 @@ if not OPENAI_KEY:
     st.error("OPENAI_API_KEY not set. Add it as an env var or in .streamlit/secrets.toml")
     st.stop()
 os.environ["OPENAI_API_KEY"] = OPENAI_KEY
+
+pdf_path = st.text_input("PDF path", "data/books/sample.pdf")
+
+if not os.path.exists(pdf_path):
+    st.error(f"File not found: {pdf_path}. Please provide a valid PDF file path.")
+else:
+    try:
+        full_text = read_pdf(pdf_path)
+        st.success("PDF loaded successfully!")
+    except ValueError as e:
+        st.error(str(e))
 
 # Load PDF and prepare retriever
 pdf_path = "data/books/sample.pdf"
