@@ -1,7 +1,5 @@
 import os
 from typing import List, Optional, Union
-
-# use these imports compatible with your langchain install
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 
@@ -15,20 +13,20 @@ class VectorStore:
         self.vector_store = None
 
         if source is None:
-            # try to load from disk
+            # Try to load from disk
             if os.path.exists(self.vector_store_path):
                 try:
                     self.vector_store = FAISS.load_local(self.vector_store_path, OpenAIEmbeddings(model=self.embedding_model))
                 except Exception:
                     self.vector_store = None
         elif hasattr(source, "as_retriever"):
-            # already a LangChain vectorstore
+            # Already a LangChain vectorstore
             self.vector_store = source
         elif isinstance(source, list):
-            # list of text chunks -> build index
+            # List of text chunks -> build index
             emb = OpenAIEmbeddings(model=self.embedding_model)
             self.vector_store = FAISS.from_texts(source, emb)
-            # save for reuse
+            # Save for reuse
             try:
                 self.vector_store.save_local(self.vector_store_path)
             except Exception:
@@ -50,7 +48,7 @@ class VectorStore:
         search_kwargs = search_kwargs or {"k": 3}
         return self.vector_store.as_retriever(search_type=search_type, search_kwargs=search_kwargs)
 
-
+# Remove the following code from the module level
 # embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 # chunks = ["Your text chunks here..."]
 # vector_store = FAISS.from_texts(chunks, embeddings)
