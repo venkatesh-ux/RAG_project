@@ -49,3 +49,9 @@ class VectorStore:
             return None
         search_kwargs = search_kwargs or {"k": 3}
         return self.vector_store.as_retriever(search_type=search_type, search_kwargs=search_kwargs)
+
+
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+chunks = ["Your text chunks here..."]
+vector_store = FAISS.from_texts(chunks, embeddings)
+vector_store.save_local("faiss_vector_store")
