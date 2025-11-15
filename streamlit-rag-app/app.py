@@ -6,6 +6,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import PromptTemplate
+import sys
+sys.path.append("c:/Users/chven/OneDrive/Documents/GitHub/RAG_project")
+import config
 
 # Set OpenAI API key
 import config
