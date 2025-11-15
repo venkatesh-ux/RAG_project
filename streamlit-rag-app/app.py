@@ -23,15 +23,15 @@ if pdf_path:
         full_text = read_pdf(pdf_path)
         st.success("PDF loaded successfully!")
 
-        # split text into chunks (pass strings to VectorStore)
+        # Split text into chunks (pass strings to VectorStore)
         splitter = RecursiveCharacterTextSplitter(chunk_size=2500, chunk_overlap=200)
         chunks = splitter.split_text(full_text)
 
-        # create/load vector store from chunks
+        # Create/load vector store from chunks
         vector_store = VectorStore.from_texts(chunks, vector_store_path="faiss_vector_store")
         st.success("Embeddings and vector store created successfully!")
 
-        # user question...
+        # User question...
         question = st.text_input("Ask a question about the PDF:")
         if question:
             retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
@@ -46,6 +46,12 @@ if pdf_path:
                     st.write(context)
                 except AttributeError as e:
                     st.error(f"Error retrieving documents: {e}")
+    except FileNotFoundError as e:
+        st.error(f"File not found: {e}")
+    except ValueError as e:
+        st.error(f"Error processing the PDF: {e}")
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {e}")
 
 # # Create embeddings and vector store
 # embeddings = create_embeddings(full_text)
