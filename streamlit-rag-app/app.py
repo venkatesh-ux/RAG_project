@@ -15,7 +15,7 @@ os.environ["OPENAI_API_KEY"] = OPENAI_KEY
 st.title("PDF Question Answering App")
 
 # Input for PDF path
-pdf_path = st.text_input("PDF path", "data/books/sample.pdf")
+pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Books/Hands on machine learing book.pdf")
 
 if pdf_path:
     try:
@@ -41,3 +41,8 @@ if pdf_path:
         st.error(str(e))
     except FileNotFoundError as e:
         st.error(str(e))
+
+# Create embeddings and vector store
+embeddings = create_embeddings(full_text)
+vector_store = VectorStore(embeddings, vector_store_path="faiss_vector_store")
+st.success("Embeddings and vector store created successfully!")
