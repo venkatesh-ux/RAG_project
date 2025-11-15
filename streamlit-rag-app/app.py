@@ -42,7 +42,7 @@ if pdf_path:
     except FileNotFoundError as e:
         st.error(str(e))
 
-# Create embeddings and vector store
-embeddings = create_embeddings(full_text)
-vector_store = VectorStore(embeddings, vector_store_path="faiss_vector_store")
-st.success("Embeddings and vector store created successfully!")
+# # Create embeddings and vector store
+# embeddings = create_embeddings(full_text)
+# vector_store = VectorStore(embeddings, vector_store_path="faiss_vector_store")
+# st.success("Embeddings and vector store created successfully!")
