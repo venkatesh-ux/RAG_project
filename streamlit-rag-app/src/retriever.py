@@ -44,13 +44,11 @@ class Retriever:
         k = k or Config.RETRIEVER_K
         retriever = self.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": k})
 
-        # Check if the public method exists, otherwise use the private method
-        if hasattr(retriever, "get_relevant_documents"):
-            docs = retriever.get_relevant_documents(query)
-        elif hasattr(retriever, "_get_relevant_documents"):
-            docs = retriever._get_relevant_documents(query)
-        else:
-            raise AttributeError("Retriever object has no method to retrieve documents.")
+        # Use the standard `retrieve` method for retrieving documents
+        try:
+            docs = retriever.retrieve(query)
+        except Exception as e:
+            raise RuntimeError(f"Error retrieving documents: {e}")
         return docs
 
     def retrieve_answer(self, query, k=None):
