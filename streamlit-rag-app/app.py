@@ -50,7 +50,7 @@ else:
     question = st.text_input("Ask a question about the PDF:")
     if question:
         try:
-            retriever = st.session_state.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+            retriever = st.session_state.vector_store.as_retriever(search_kwargs={"k": 3})
             if retriever is None:
                 st.error("Retriever not available. Vector store failed to initialize.")
             else:
@@ -59,6 +59,8 @@ else:
                     docs = retriever.retrieve(question)
                 elif hasattr(retriever, "get_relevant_documents"):
                     docs = retriever.get_relevant_documents(question)
+                elif hasattr(retriever, "invoke"):
+                    docs = retriever.invoke(question)
                 else:
                     raise AttributeError("Retriever object has no method to retrieve documents.")
 
