@@ -17,13 +17,11 @@ st.title("PDF Question Answering App")
 # Input for PDF path
 pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Books/Hands on machine learing book.pdf")
 
-# Question input field (always visible)
-question = st.text_input("Ask a question about the PDF:")
-
 # Initialize vector_store in session_state
 if "vector_store" not in st.session_state:
     st.session_state.vector_store = None
 
+# Button to process the PDF
 if st.button("Process PDF"):
     try:
         full_text = read_pdf(pdf_path)
@@ -44,10 +42,13 @@ if st.button("Process PDF"):
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
-if question:
-    if st.session_state.vector_store is None:
-        st.error("Vector store is not initialized. Please process the PDF first.")
-    else:
+# Disable the question field until the PDF is processed
+if st.session_state.vector_store is None:
+    st.info("Please process the PDF first to enable question answering.")
+else:
+    # Question input field (enabled only after processing the PDF)
+    question = st.text_input("Ask a question about the PDF:")
+    if question:
         try:
             retriever = st.session_state.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
             if retriever is None:
@@ -67,3 +68,5 @@ if question:
                 st.write(context)
         except AttributeError as e:
             st.error(f"Error retrieving documents: {e}")
+        except Exception as e:
+            st.error(f"An unexpected error occurred: {e}")
