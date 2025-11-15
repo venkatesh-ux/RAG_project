@@ -3,6 +3,7 @@ from src.embeddings import create_embeddings
 from src.vectorstore import VectorStore
 import os
 import streamlit as st
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # Ensure OpenAI API key is set
 OPENAI_KEY = os.environ.get("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
@@ -19,24 +20,28 @@ pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Book
 
 if pdf_path:
     try:
-        # Read the PDF
         full_text = read_pdf(pdf_path)
         st.success("PDF loaded successfully!")
-        
-        # Create embeddings and vector store
-        embeddings = create_embeddings(full_text)
-        vector_store = VectorStore(embeddings)
+
+        # split text into chunks (pass strings to VectorStore)
+        splitter = RecursiveCharacterTextSplitter(chunk_size=2500, chunk_overlap=200)
+        chunks = splitter.split_text(full_text)
+
+        # create/load vector store from chunks
+        vector_store = VectorStore.from_texts(chunks, vector_store_path="faiss_vector_store")
         st.success("Embeddings and vector store created successfully!")
-        
-        # Input for user question
+
+        # user question...
         question = st.text_input("Ask a question about the PDF:")
         if question:
-            # Retrieve answer
             retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-            docs = retriever.get_relevant_documents(question)
-            context = "\n\n".join([doc.page_content for doc in docs])
-            st.write("Answer Context:")
-            st.write(context)
+            if retriever is None:
+                st.error("Retriever not available. Vector store failed to initialize.")
+            else:
+                docs = retriever.get_relevant_documents(question)
+                context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
+                st.write("Answer Context:")
+                st.write(context)
     except ValueError as e:
         st.error(str(e))
     except FileNotFoundError as e:
