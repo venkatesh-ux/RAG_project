@@ -1,5 +1,4 @@
 from src.pdf_processor import read_pdf
-from src.embeddings import create_embeddings
 from src.vectorstore import VectorStore
 import os
 import streamlit as st
@@ -21,8 +20,9 @@ pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Book
 # Question input field (always visible)
 question = st.text_input("Ask a question about the PDF:")
 
-# Initialize vector_store globally
-vector_store = None
+# Initialize vector_store in session_state
+if "vector_store" not in st.session_state:
+    st.session_state.vector_store = None
 
 if st.button("Process PDF"):
     try:
@@ -35,6 +35,7 @@ if st.button("Process PDF"):
 
         # Create vector store from chunks
         vector_store = VectorStore.from_texts(chunks, vector_store_path="faiss_vector_store")
+        st.session_state.vector_store = vector_store  # Save to session_state
         st.success("Embeddings and vector store created successfully!")
 
         # Save the vector store explicitly
@@ -44,11 +45,11 @@ if st.button("Process PDF"):
         st.error(f"An error occurred: {e}")
 
 if question:
-    if vector_store is None:
+    if st.session_state.vector_store is None:
         st.error("Vector store is not initialized. Please process the PDF first.")
     else:
         try:
-            retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+            retriever = st.session_state.vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
             if retriever is None:
                 st.error("Retriever not available. Vector store failed to initialize.")
             else:
