@@ -26,11 +26,6 @@ class VectorStore:
             # List of text chunks -> build index
             emb = OpenAIEmbeddings(model=self.embedding_model)
             self.vector_store = FAISS.from_texts(source, emb)
-            # Save for reuse
-            try:
-                self.vector_store.save_local(self.vector_store_path)
-            except Exception:
-                pass
         else:
             raise ValueError("Unsupported source type for VectorStore")
 
@@ -42,14 +37,15 @@ class VectorStore:
     def load_local(cls, vector_store_path: str = "faiss_vector_store", embedding_model: str = "text-embedding-3-small"):
         return cls(source=None, vector_store_path=vector_store_path, embedding_model=embedding_model)
 
+    def save(self):
+        """
+        Save the vector store to disk.
+        """
+        if self.vector_store is not None:
+            self.vector_store.save_local(self.vector_store_path)
+
     def as_retriever(self, search_type: str = "similarity", search_kwargs: Optional[dict] = None):
         if self.vector_store is None:
             return None
         search_kwargs = search_kwargs or {"k": 3}
         return self.vector_store.as_retriever(search_type=search_type, search_kwargs=search_kwargs)
-
-# Remove the following code from the module level
-# embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-# chunks = ["Your text chunks here..."]
-# vector_store = FAISS.from_texts(chunks, embeddings)
-# vector_store.save_local("faiss_vector_store")

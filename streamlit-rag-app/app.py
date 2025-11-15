@@ -27,9 +27,13 @@ if st.button("Process PDF"):
         splitter = RecursiveCharacterTextSplitter(chunk_size=2500, chunk_overlap=200)
         chunks = splitter.split_text(full_text)
 
-        # Create/load vector store from chunks
+        # Create vector store from chunks
         vector_store = VectorStore.from_texts(chunks, vector_store_path="faiss_vector_store")
         st.success("Embeddings and vector store created successfully!")
+
+        # Save the vector store explicitly
+        vector_store.save()
+        st.success("Vector store saved successfully!")
     except Exception as e:
         st.error(f"An error occurred: {e}")
 
