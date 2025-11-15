@@ -21,6 +21,9 @@ pdf_path = st.text_input("PDF path", "C:/Users/chven/OneDrive/Documents/aaa_Book
 # Question input field (always visible)
 question = st.text_input("Ask a question about the PDF:")
 
+# Initialize vector_store globally
+vector_store = None
+
 if st.button("Process PDF"):
     try:
         full_text = read_pdf(pdf_path)
@@ -41,15 +44,18 @@ if st.button("Process PDF"):
         st.error(f"An error occurred: {e}")
 
 if question:
-    try:
-        retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
-        if retriever is None:
-            st.error("Retriever not available. Vector store failed to initialize.")
-        else:
-            # Use the correct method for retrieving documents
-            docs = retriever.get_relevant_documents(question)
-            context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
-            st.write("Answer Context:")
-            st.write(context)
-    except AttributeError as e:
-        st.error(f"Error retrieving documents: {e}")
+    if vector_store is None:
+        st.error("Vector store is not initialized. Please process the PDF first.")
+    else:
+        try:
+            retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+            if retriever is None:
+                st.error("Retriever not available. Vector store failed to initialize.")
+            else:
+                # Use the correct method for retrieving documents
+                docs = retriever.retrieve(question)
+                context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
+                st.write("Answer Context:")
+                st.write(context)
+        except AttributeError as e:
+            st.error(f"Error retrieving documents: {e}")
