@@ -53,8 +53,15 @@ if question:
             if retriever is None:
                 st.error("Retriever not available. Vector store failed to initialize.")
             else:
-                # Use the correct method for retrieving documents
-                docs = retriever.retrieve(question)
+                # Dynamically check for the correct method
+                if hasattr(retriever, "retrieve"):
+                    docs = retriever.retrieve(question)
+                elif hasattr(retriever, "get_relevant_documents"):
+                    docs = retriever.get_relevant_documents(question)
+                else:
+                    raise AttributeError("Retriever object has no method to retrieve documents.")
+
+                # Display the retrieved context
                 context = "\n\n".join(getattr(doc, "page_content", str(doc)) for doc in docs)
                 st.write("Answer Context:")
                 st.write(context)
